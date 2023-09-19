@@ -1,0 +1,4 @@
+openai~=0.28.0
+python_dotenv
+requests
+beautifulsoup4
