@@ -1,8 +1,10 @@
 import os
+import re
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import openai
 from dotenv import load_dotenv
+from openai.openai_object import OpenAIObject
 
 load_dotenv()
 
@@ -12,23 +14,64 @@ openai.api_version = "2023-07-01-preview"
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 messages = [{"role": "system",
-             "content": "Du er en AI-assistent som har et skript som skal hjelpe deg når du trenger tillgang til internett for å hente informasjon i sanntid med å skrive meldingen \"skript:http_get('https://example.com')\". Vent med å svare brukeren til du har fått svar fra skript kallet. Ettersom du er i 2023 bør du bruke dette skriptet for å få oppdatert informasjon."},
+             "content": "Du er en AI-assistent som skal hjelpe brukeren med sanntidsinnformasjon. Du har tilgang til oppdatert innformasjon på internett"
+                        " med å bruke skriptet"
+                        "Hvis de første bokstavene i meldingen du sender er 'skript', så vil et skript evalueres og kjøres."
+                        "Brukeren kan ikke kjøre disse skriptene selv."
+                        "Husk å gi et svar til brukeren etter at skripet er ferdig."
+                        "Dine er 'skript:', så vil et skript kjøres som gir deg mer informasjon "
+                        "internett for å hente informasjon i sanntid med å skrive meldingen \"skript:http_get("
+                        "'https://example.com')\". Skriptet gir deg teksten fra nettsiden uten html"
+                        "Bruk værdata fra \"skript:weather(lat,lon)\""},
             {"role": "user", "content": "hva er siste nytt på vg"},
             {"role": "assistant", "content": "skript:http_get(\"https://vg.no\")"},
-            {"role": "user", "content": "hva er siste nytt på tv2?"}]
-
-response = openai.ChatCompletion.create(
-    engine="gpt-35-turbo",
-    messages=messages,
-    temperature=0.25,
-    max_tokens=876,
-    top_p=1,
-    frequency_penalty=0,
-    presence_penalty=0,
-    stop=None)
+            {"role": "user", "content": "hva blir været i Oslo?"},
+            {"role": "assistant", "content": "skript:weather(59.91,10.76)"}
+            ]
 
 
-def http_get(url):
+def weather(lat: float, lon: float) -> str:
+    weather = internal_http_get(
+        f'https://api.open-meteo.com/v1/forecast?latitude={lat}1&longitude={lon}&current_weather=true&hourly=temperature_2m')
+    return "her er den. Bruk dataen og oppsumer for brukeren " + weather
+
+
+def search(keyword: str):
+    keyword = re.sub('\s', "+", keyword)
+    return internal_http_get(f'https://duckduckgo.com/?q=!{keyword}')
+
+
+def http_get(url: str) -> str:
+    return "her er infoen. Bruk denne for å svare på brukerens forespørsel: " + internal_http_get(url)
+
+
+def handle_incoming_message(message: str) -> None:
+    messages.append({"role": "user", "content": message})
+    msg2 = execute_chat_completion(messages)
+    if len(msg2) >= 7 and msg2[:7] == 'skript:':
+        internet_context: dict = {"role": "user", "content": eval(msg2[7:])}
+        msg3 = execute_chat_completion(messages + [internet_context])
+        messages.append({"role": "assistant", "content": msg3})
+        print(msg3)
+    else:
+        messages.append({"role": "assistant", "content": msg2})
+        print(msg2)
+
+
+def execute_chat_completion(messages: list[dict]) -> str:
+    response: OpenAIObject = openai.ChatCompletion.create(
+        engine="gpt-35-turbo",
+        messages=messages,
+        temperature=0.25,
+        max_tokens=876,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0,
+        stop=None)
+    return response.choices[0].message.content
+
+
+def internal_http_get(url) -> str:
     html = urlopen(url).read()
     soup = BeautifulSoup(html, features="html.parser")
 
@@ -51,19 +94,7 @@ def http_get(url):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    msg: str = response.choices[0].message.content
-    if len(msg) >= 7:
-        first_six = msg[:7]
-        if first_six == 'skript:':
-            messages.append({"role": "user", "content": eval(msg[7:])})
-            response = openai.ChatCompletion.create(
-                engine="gpt-35-turbo",
-                messages=messages,
-                temperature=0.25,
-                max_tokens=876,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0,
-                stop=None)
-
-    print(response.choices[0].message.content)
+    while True:
+        print(messages)
+        msg = input("skriv til internettGPT: ")
+        handle_incoming_message(msg)
