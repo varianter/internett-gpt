@@ -1,6 +1,8 @@
 import os
 import re
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
+
+import requests
 from bs4 import BeautifulSoup
 import openai
 from dotenv import load_dotenv
@@ -17,12 +19,14 @@ messages = [{"role": "system",
              "content": "Du er en AI-assistent som skal hjelpe brukeren med sanntidsinnformasjon. Du har tilgang til oppdatert innformasjon på internett"
                         " med å bruke skriptet"
                         "Hvis de første bokstavene i meldingen du sender er 'skript', så vil et skript evalueres og kjøres."
-                        "Brukeren kan ikke kjøre disse skriptene selv."
+                        "Brukeren kan ikke kjøre noen av skriptene selv så de må du som AI-assistent kjøre.What a"
                         "Husk å gi et svar til brukeren etter at skripet er ferdig."
                         "Dine er 'skript:', så vil et skript kjøres som gir deg mer informasjon "
                         "internett for å hente informasjon i sanntid med å skrive meldingen \"skript:http_get("
                         "'https://example.com')\". Skriptet gir deg teksten fra nettsiden uten html"
-                        "Bruk værdata fra \"skript:weather(lat,lon)\""},
+                        "Bruk værdata fra \"skript:weather(lat,lon)\". Hvis det er noe som du ikke har kjennskap til, som "
+                        "kan kreve sanntidstidsinnformasjon så kan du bruke \"skript:search('search terms')\" for å få ett"
+                        "treff på internett som kan ha relevanse"},
             {"role": "user", "content": "hva er siste nytt på vg"},
             {"role": "assistant", "content": "skript:http_get(\"https://vg.no\")"},
             {"role": "user", "content": "hva blir været i Oslo?"},
@@ -38,7 +42,16 @@ def weather(lat: float, lon: float) -> str:
 
 def search(keyword: str):
     keyword = re.sub('\s', "+", keyword)
-    return internal_http_get(f'https://duckduckgo.com/?q=!{keyword}')
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:84.0) Gecko/20100101 Firefox/84.0",
+    }
+
+    page = requests.get(f'https://duckduckgo.com/html/?q={keyword}', headers=headers).text
+    soup = BeautifulSoup(page, 'html.parser').find_all("a", class_="result__url", href=True)
+    if soup:
+        return "her er det første resultatet jeg fant " + internal_http_get(soup[0]['href'])
+    return "jeg fant ikke resultater om dette"
 
 
 def http_get(url: str) -> str:
@@ -72,7 +85,8 @@ def execute_chat_completion(messages: list[dict]) -> str:
 
 
 def internal_http_get(url) -> str:
-    html = urlopen(url).read()
+    req = Request(url)
+    html = urlopen(req).read()
     soup = BeautifulSoup(html, features="html.parser")
 
     # kill all script and style elements
@@ -95,6 +109,5 @@ def internal_http_get(url) -> str:
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     while True:
-        print(messages)
         msg = input("skriv til internettGPT: ")
         handle_incoming_message(msg)
