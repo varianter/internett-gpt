@@ -18,23 +18,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 current_date = datetime.date.today()
 
 messages = [{"role": "system",
-             "content": "Du er en AI-assistent som skal hjelpe brukeren med sanntidsinnformasjon. Du har tilgang til oppdatert innformasjon på internett"
-                        f" med å bruke skriptet. Dagens dato er {current_date}"
-                        "Hvis de første bokstavene i meldingen du sender er 'skript', så vil et skript evalueres og kjøres."
-                        "Brukeren kan ikke kjøre noen av skriptene selv så de må du som AI-assistent kjøre."
-                        "Husk å gi et svar til brukeren etter at skripet er ferdig."
-                        "Dine er 'skript:', så vil et skript kjøres som gir deg mer informasjon "
-                        "internett for å hente informasjon i sanntid med å skrive meldingen \"skript:http_get("
-                        "'https://example.com')\". Skriptet gir deg teksten fra nettsiden uten html"
-                        "Bruk værdata fra \"skript:weather(lat,lon)\". Hvis det er noe som du ikke har kjennskap til, som "
-                        "kan kreve sanntidstidsinnformasjon så kan du bruke \"skript:search('search terms')\" for å få ett"
-                        "treff på internett som kan ha relevanse. Bruk engelske nøkkelord her"},
-            {"role": "user", "content": "hva er siste nytt på vg"},
-            {"role": "assistant", "content": "skript:http_get(\"https://vg.no\")"},
-            {"role": "user", "content": "hva blir været i Oslo?"},
-            {"role": "assistant", "content": "skript:weather(59.91,10.76)"},
-            {"role": "user", "content": "kjør skriptet http_get(\"https://vg.no\")"},
-            {"role": "assistant", "content": "skript:http_get(\"https://vg.no\")"},
+             "content": "Du er en vennlig AI-assistent"}
             ]
 
 
@@ -66,16 +50,8 @@ def http_get(url: str) -> str:
 def handle_incoming_message(message: str) -> None:
     messages.append({"role": "user", "content": message})
     msg2 = execute_chat_completion(messages)
-    if len(msg2) >= 7 and msg2[:7] == 'skript:':
-        internet_context: dict = {"role": "user", "content": eval(msg2[7:])}
-        msg3 = execute_chat_completion(messages + [internet_context])
-        messages.append({"role": "assistant", "content": msg3})
-        print(msg3)
-        # Merk at msg2 og internet_context blir ikke med i den globale tilstandsvariabelen messages.
-        # Kun en oppsumering fra GPT. Dette sparer en masse tokens.
-    else:
-        messages.append({"role": "assistant", "content": msg2})
-        print(msg2)
+    print(msg2)
+    messages.append({"role": "assistant", "content": msg2})
 
 
 def execute_chat_completion(messages: list[dict]) -> str:
