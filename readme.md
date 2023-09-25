@@ -8,5 +8,5 @@
 pip install -r requirements.txt
 ```
 
-Start deretter serveren ved å kjøre **backend.py**
+Start deretter serveren ved å kjøre
 `python main.py`
