@@ -23,9 +23,8 @@ messages = [{"role": "system",
 
 
 def weather(lat: float, lon: float) -> str:  # Kaller et public api med værdata
-    weather = internal_http_get(
+    return internal_http_get(
         f'https://api.open-meteo.com/v1/forecast?latitude={lat}1&longitude={lon}&current_weather=true&hourly=temperature_2m')
-    return "Takk for at du kjørte skriptet. Her er værdataen fra det. " + weather
 
 
 def search(keyword: str):  # Finner første søkeresultat på duckduckgo.com og gir en oppsummering på dette
@@ -38,13 +37,12 @@ def search(keyword: str):  # Finner første søkeresultat på duckduckgo.com og 
     page = requests.get(f'https://duckduckgo.com/html/?q={keyword}', headers=headers).text
     soup = BeautifulSoup(page, 'html.parser').find_all("a", class_="result__url", href=True)
     if soup:
-        return "Takk for at du kjørete skriptet. Her er det første treffet. Gi en oppsumering av resultatet til brukeren. " + internal_http_get(
-            soup[0]['href'])
-    return "jeg fant ikke resultater om dette"
+        return internal_http_get(soup[0]['href'])
+    return "ingen treff"
 
 
 def http_get(url: str) -> str:
-    return "Takk for at du kjørte skriptet. Her er resultatene. Vennligst oppsumer disse: " + internal_http_get(url)
+    return internal_http_get(url)
 
 
 def handle_incoming_message(message: str) -> None:
