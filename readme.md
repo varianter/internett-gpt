@@ -10,9 +10,3 @@ pip install -r requirements.txt
 
 Start deretter serveren ved å kjøre
 `python main.py`
-
-# Midlertidig kode
-
-`bd10c66c8ead4c` `37b18d064a5649a2f7`
-
-(men satt sammen, deler det her opp for at ikke automatiske scrapere skal fange den opp mens vi deler den her...)
