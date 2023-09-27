@@ -1,4 +1,5 @@
 import os
+import re
 from urllib.request import Request, urlopen
 
 import openai
